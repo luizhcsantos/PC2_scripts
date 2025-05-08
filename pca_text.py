@@ -95,67 +95,67 @@ def main():
 
     df['clean_msg'] = df.message.apply(text_process)
 
-    
-    # for run in range(n_execucoes):
-    #
-    #     # Iniciar medição de tempo
-    #     start_time = time.time()
-    #
-    #
-    #     vectorizer = TfidfVectorizer(tokenizer=LemmaTokenizer(), token_pattern=None, max_features=10000)
-    #
-    #     x_tfidf = vectorizer.fit_transform(df.clean_msg)
-    #
-    #     pca = PCA(n_components=0.90, random_state=0)
-    #     x_pca = pca.fit_transform(x_tfidf.toarray())
-    #
-    #     # Calcular tempo de execução
-    #     execution_time = time.time() - start_time
-    #
-    #     # Calcular Stress
-    #     original_distances = pairwise_distances(x_tfidf, metric='euclidean')
-    #     pca_distances = pairwise_distances(x_pca, metric='euclidean')
-    #
-    #     stress_numerator = np.sum((original_distances - pca_distances) ** 2)
-    #     stress_denominator = np.sum(original_distances ** 2)
-    #     stress = np.sqrt(stress_numerator / stress_denominator)
-    #
-    #     # Calcular Trustworthiness
-    #     trust = trustworthiness(x_tfidf, x_pca, n_neighbors=k_neighbors)
-    #
-    #     # Calcular Continuity
-    #     nbrs_original = NearestNeighbors(n_neighbors=k_neighbors).fit(x_tfidf)
-    #     _, indices_original = nbrs_original.kneighbors(x_tfidf)
-    #
-    #     nbrs_pca = NearestNeighbors(n_neighbors=k_neighbors).fit(x_pca)
-    #     _, indices_pca = nbrs_pca.kneighbors(x_pca)
-    #
-    #     continuity = 0
-    #     n = x_tfidf.shape[0]
-    #     for i in range(n):
-    #         common_neighbors = len(set(indices_original[i]).intersection(set(indices_pca[i])))
-    #         continuity += common_neighbors / k_neighbors
-    #     continuity /= n
-    #
-    #     # Salvar resultados
-    #     results.append({
-    #         'conjunto' : caminho_conjunto.split('/')[-1].split('.')[0],
-    #         'execucao': run + 1,
-    #         'tempo_execucao': execution_time,
-    #         'stress': stress,
-    #         'trustworthiness': trust,
-    #         'continuity': continuity
-    #     })
-    # caminho_resultados = 'resultados/pca/metricas_pca.csv'
-    # df_results = pd.DataFrame(results)
-    # if not os.path.isfile(caminho_resultados):
-    #     # Se o arquivo não existe na pasta, cria com cabeçalho
-    #     df_results.to_csv(caminho_resultados, index=False)
-    # else:
-    #     # Se o arquivo já existe na pasta, adiciona novas linhas sem repetir o cabeçalho
-    #     df_results.to_csv(caminho_resultados, mode='a', header=False, index=False)
-    #
-    # print(df_results)
+
+    for run in range(n_execucoes):
+
+        # Iniciar medição de tempo
+        start_time = time.time()
+
+
+        vectorizer = TfidfVectorizer(tokenizer=LemmaTokenizer(), token_pattern=None, max_features=10000)
+
+        x_tfidf = vectorizer.fit_transform(df.clean_msg)
+
+        pca = PCA(n_components=0.90, random_state=0)
+        x_pca = pca.fit_transform(x_tfidf.toarray())
+
+        # Calcular tempo de execução
+        execution_time = time.time() - start_time
+
+        # Calcular Stress
+        original_distances = pairwise_distances(x_tfidf, metric='euclidean')
+        pca_distances = pairwise_distances(x_pca, metric='euclidean')
+
+        stress_numerator = np.sum((original_distances - pca_distances) ** 2)
+        stress_denominator = np.sum(original_distances ** 2)
+        stress = np.sqrt(stress_numerator / stress_denominator)
+
+        # Calcular Trustworthiness
+        trust = trustworthiness(x_tfidf, x_pca, n_neighbors=k_neighbors)
+
+        # Calcular Continuity
+        nbrs_original = NearestNeighbors(n_neighbors=k_neighbors).fit(x_tfidf)
+        _, indices_original = nbrs_original.kneighbors(x_tfidf)
+
+        nbrs_pca = NearestNeighbors(n_neighbors=k_neighbors).fit(x_pca)
+        _, indices_pca = nbrs_pca.kneighbors(x_pca)
+
+        continuity = 0
+        n = x_tfidf.shape[0]
+        for i in range(n):
+            common_neighbors = len(set(indices_original[i]).intersection(set(indices_pca[i])))
+            continuity += common_neighbors / k_neighbors
+        continuity /= n
+
+        # Salvar resultados
+        results.append({
+            'conjunto' : caminho_conjunto.split('/')[-1].split('.')[0],
+            'execucao': run + 1,
+            'tempo_execucao': execution_time,
+            'stress': stress,
+            'trustworthiness': trust,
+            'continuity': continuity
+        })
+    caminho_resultados = 'resultados/pca/metricas_pca.csv'
+    df_results = pd.DataFrame(results)
+    if not os.path.isfile(caminho_resultados):
+        # Se o arquivo não existe na pasta, cria com cabeçalho
+        df_results.to_csv(caminho_resultados, index=False)
+    else:
+        # Se o arquivo já existe na pasta, adiciona novas linhas sem repetir o cabeçalho
+        df_results.to_csv(caminho_resultados, mode='a', header=False, index=False)
+
+    print(df_results)
     
 
 
