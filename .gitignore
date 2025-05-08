@@ -158,3 +158,31 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
+
+
+bank+marketing/
+cifar10_dataset/
+coil20/
+epileptic-seizure-recognition/
+epilepsy_data/
+FMD/
+hiva/
+imdb/
+seismic/
+seizure_data/
+sentiment/
+spam.csv/
+ORL/
+SECOM/
+SMS/
+cnae+9/
+bank+marketing.zip
+PCA_variancia_PCs_2.png
+bank+marketing/bank-additional.zip
+.gitignore
+bank+marketing.zip
+cnae+9.zip
+fashionmnist.csv/fashion-mnist_test.csv
+fashionmnist.csv/fashion-mnist_train.csv
+fashionmnist.zip
+epileptic-seizure-recognition.zip
