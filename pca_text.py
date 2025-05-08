@@ -1,46 +1,22 @@
-
-import nltk
-import requests
-import zipfile
 import os
-from io import BytesIO
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
-import pandas as pd
-import numpy as np
-from PIL import Image
-
-#!pip install ucimlrepo
-#from ucimlrepo import fetch_ucirepo
-
-from sklearn.preprocessing import LabelEncoder
-from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
-from sklearn.model_selection import train_test_split
-
-import time 
-from sklearn.metrics import pairwise_distances
-from sklearn.manifold import trustworthiness
-from sklearn.neighbors import NearestNeighbors
-
-from sklearn.feature_extraction.text import CountVectorizer
-import chardet 
 import string
+import time
+import nltk
+import numpy as np
+import pandas as pd
 from nltk.corpus import stopwords
+from sklearn.decomposition import PCA
+from sklearn.manifold import trustworthiness
+from sklearn.metrics import pairwise_distances
+from sklearn.neighbors import NearestNeighbors
 nltk.download('stopwords')
 nltk.download('punkt')
 nltk.download('wordnet')
 nltk.download('punkt_tab')
-from sklearn.feature_extraction.text import TfidfTransformer
-
 import re
-from wordcloud import WordCloud
-from mlxtend.frequent_patterns import fpgrowth
+import chardet
 from nltk.tokenize import word_tokenize
 from nltk.stem.wordnet import WordNetLemmatizer
-from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score
-from sklearn.decomposition import TruncatedSVD
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 class LemmaTokenizer(object):
@@ -100,51 +76,86 @@ def text_process(mess):
 
 def main():
 
+    n_execucoes = 5  # Número de execuções do PCA
+    k_neighbors = 5  # Número de vizinhos para trustworthiness/continuity
+    results = []  # Lista para armazenar resultados
+
+    caminho_conjunto = 'SMS/spam.csv'
+    #caminho_conjunto = 'hatespeech/labeled_data.csv'
     # Load the dataset
+    with open(caminho_conjunto, 'rb') as f:
+        result = chardet.detect(f.read())
+    df = pd.read_csv(caminho_conjunto, encoding=result['encoding'])
 
-    sms = pd.read_csv("SMS/spam.csv", encoding='latin-1')
-    sms.dropna(how="any", inplace=True, axis=1)
-    sms.columns = ['label', 'message']
+    df.dropna(how="any", inplace=True, axis=1)
+    df.columns = ['label', 'message']
 
-    sms['label_num'] = sms.label.map({'ham':0, 'spam':1})
-    sms['message_len'] = sms.message.apply(len)
+    df['label_num'] = df.label.map({'ham':0, 'spam':1})
+    df['message_len'] = df.message.apply(len)
 
-    sms['clean_msg'] = sms.message.apply(text_process)
+    df['clean_msg'] = df.message.apply(text_process)
 
-
-
-    vectorizer = TfidfVectorizer(tokenizer=LemmaTokenizer())
-
-    X_tfidf = vectorizer.fit_transform(sms.clean_msg)
-
-    pca = PCA(n_components=0.90, random_state=0)
-    x_pca = pca.fit_transform(X_tfidf.toarray())
-
-    # svd = TruncatedSVD(n_components=100, random_state=42)
-    # X_svd = svd.fit_transform(X_tfidf)
-
-
-    """X = sms.clean_msg
-    y = sms.label_num
-
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-    vect = CountVectorizer(stop_words='english', max_df=0.5)
-    vect.fit(X_train)
-
-    X_train_dtm = vect.transform(X_train)
-
-    X_train_dtm = vect.fit_transform(X_train)
-
-    X_test_dtm = vect.transform(X_test)
-
-    tfidf_transformer = TfidfTransformer()
-    tfidf_transformer.fit(X_train_dtm)
-    tfidf_transformer.transform(X_train_dtm)
-
-    pca = PCA(n_components=0.90, random_state=0)
-    principal_components = pca.fit_transform(X_train_dtm.toarray()) """
+    
+    # for run in range(n_execucoes):
+    #
+    #     # Iniciar medição de tempo
+    #     start_time = time.time()
+    #
+    #
+    #     vectorizer = TfidfVectorizer(tokenizer=LemmaTokenizer(), token_pattern=None, max_features=10000)
+    #
+    #     x_tfidf = vectorizer.fit_transform(df.clean_msg)
+    #
+    #     pca = PCA(n_components=0.90, random_state=0)
+    #     x_pca = pca.fit_transform(x_tfidf.toarray())
+    #
+    #     # Calcular tempo de execução
+    #     execution_time = time.time() - start_time
+    #
+    #     # Calcular Stress
+    #     original_distances = pairwise_distances(x_tfidf, metric='euclidean')
+    #     pca_distances = pairwise_distances(x_pca, metric='euclidean')
+    #
+    #     stress_numerator = np.sum((original_distances - pca_distances) ** 2)
+    #     stress_denominator = np.sum(original_distances ** 2)
+    #     stress = np.sqrt(stress_numerator / stress_denominator)
+    #
+    #     # Calcular Trustworthiness
+    #     trust = trustworthiness(x_tfidf, x_pca, n_neighbors=k_neighbors)
+    #
+    #     # Calcular Continuity
+    #     nbrs_original = NearestNeighbors(n_neighbors=k_neighbors).fit(x_tfidf)
+    #     _, indices_original = nbrs_original.kneighbors(x_tfidf)
+    #
+    #     nbrs_pca = NearestNeighbors(n_neighbors=k_neighbors).fit(x_pca)
+    #     _, indices_pca = nbrs_pca.kneighbors(x_pca)
+    #
+    #     continuity = 0
+    #     n = x_tfidf.shape[0]
+    #     for i in range(n):
+    #         common_neighbors = len(set(indices_original[i]).intersection(set(indices_pca[i])))
+    #         continuity += common_neighbors / k_neighbors
+    #     continuity /= n
+    #
+    #     # Salvar resultados
+    #     results.append({
+    #         'conjunto' : caminho_conjunto.split('/')[-1].split('.')[0],
+    #         'execucao': run + 1,
+    #         'tempo_execucao': execution_time,
+    #         'stress': stress,
+    #         'trustworthiness': trust,
+    #         'continuity': continuity
+    #     })
+    # caminho_resultados = 'resultados/pca/metricas_pca.csv'
+    # df_results = pd.DataFrame(results)
+    # if not os.path.isfile(caminho_resultados):
+    #     # Se o arquivo não existe na pasta, cria com cabeçalho
+    #     df_results.to_csv(caminho_resultados, index=False)
+    # else:
+    #     # Se o arquivo já existe na pasta, adiciona novas linhas sem repetir o cabeçalho
+    #     df_results.to_csv(caminho_resultados, mode='a', header=False, index=False)
+    #
+    # print(df_results)
     
 
 

@@ -87,7 +87,7 @@ def main():
     k_neighbors = 5   # Número de vizinhos para trustworthiness/continuity
     results = []      # Lista para armazenar resultados
 
-    """ for run in range(n_execucoes):
+    for run in range(n_execucoes):
         # Iniciar medição de tempo
         start_time = time.time()
         
@@ -130,7 +130,7 @@ def main():
             'stress': stress,
             'trustworthiness': trust,
             'continuity': continuity
-        }) """
+        })
     
     # Criar DataFrame com os resultados
     """ df_results = pd.DataFrame(results)
