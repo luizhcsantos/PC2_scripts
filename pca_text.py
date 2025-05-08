@@ -11,7 +11,7 @@ import numpy as np
 from PIL import Image
 
 #!pip install ucimlrepo
-from ucimlrepo import fetch_ucirepo
+#from ucimlrepo import fetch_ucirepo
 
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import StandardScaler
@@ -28,7 +28,55 @@ import chardet
 import string
 from nltk.corpus import stopwords
 nltk.download('stopwords')
+nltk.download('punkt')
+nltk.download('wordnet')
+nltk.download('punkt_tab')
 from sklearn.feature_extraction.text import TfidfTransformer
+
+import re
+from wordcloud import WordCloud
+from mlxtend.frequent_patterns import fpgrowth
+from nltk.tokenize import word_tokenize
+from nltk.stem.wordnet import WordNetLemmatizer
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+from sklearn.decomposition import TruncatedSVD
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+class LemmaTokenizer(object):
+
+    def __init__(self):
+        self.lemmatizer = WordNetLemmatizer()
+        self.stopwords = set(stopwords.words('english'))
+
+    def __call__(self, document):
+        lemmas = []
+        
+        # Pre-proccessing of one document at the time
+        # Removing puntuation
+        translator_1 = str.maketrans(string.punctuation, ' ' *
+                                     len(string.punctuation))
+        document = document.translate(translator_1)
+
+        # Removing numbers
+        document = re.sub(r'\d+', ' ', document)
+
+        # Removing special characters
+        document = re.sub(r"[^a-zA-Z0-9]+", ' ', document)
+
+        # The document is a string up to now, after word_tokenize(document) we'll work on every word one at the time
+        for token in word_tokenize(document):
+            
+            # Removing spaces
+            token = token.strip()
+            
+            # Lemmatizing
+            token = self.lemmatizer.lemmatize(token)
+
+            # Removing stopwords
+            if token not in self.stopwords and len(token) > 2:
+                lemmas.append(token)
+        return lemmas
 
 
 
@@ -63,7 +111,20 @@ def main():
 
     sms['clean_msg'] = sms.message.apply(text_process)
 
-    X = sms.clean_msg
+
+
+    vectorizer = TfidfVectorizer(tokenizer=LemmaTokenizer())
+
+    X_tfidf = vectorizer.fit_transform(sms.clean_msg)
+
+    pca = PCA(n_components=0.90, random_state=0)
+    x_pca = pca.fit_transform(X_tfidf.toarray())
+
+    # svd = TruncatedSVD(n_components=100, random_state=42)
+    # X_svd = svd.fit_transform(X_tfidf)
+
+
+    """X = sms.clean_msg
     y = sms.label_num
 
 
@@ -83,7 +144,7 @@ def main():
     tfidf_transformer.transform(X_train_dtm)
 
     pca = PCA(n_components=0.90, random_state=0)
-    principal_components = pca.fit_transform(X_train_dtm.toarray())
+    principal_components = pca.fit_transform(X_train_dtm.toarray()) """
     
 
 
