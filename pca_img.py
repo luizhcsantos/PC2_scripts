@@ -15,6 +15,7 @@ from sklearn.manifold import trustworthiness
 from sklearn.metrics import pairwise_distances
 from sklearn.metrics import pairwise_distances_chunked
 from sklearn.neighbors import NearestNeighbors
+import os
 
   # Removed 'stress_numerator' import as it was undefined in 'pca.py'
 
@@ -24,18 +25,19 @@ def calculate_pairwise_distances_in_chunks(x, metric="euclidean", working_memory
         Função para calcular distâncias de forma eficiente em blocos para evitar problemas de memória.
         """
     print(f"Calculando distancias pairwise em blocos para matriz de tamanho {x.shape}...")
-    pairwise_distances_gen = pairwise_distances_chunked(
-        x,
-        metric=metric,
-        working_memory=working_memory,
-        n_jobs=-1)
 
-    results = []
-    for chunk in pairwise_distances_gen:
-        results.append(chunk)
-    #distance_matrix = np.vstack(list(pairwise_distances_gen))
-    print("Cálculo de distancia concluído.")
-    return results
+    pairwise_distances_gen = pairwise_distances_chunked(x, metric=metric,working_memory=working_memory, n_jobs=-1)
+    chunks = list(pairwise_distances_chunked(x, metric=metric,working_memory=working_memory, n_jobs=-1))
+
+    distant_matrix = np.vstack(chunks)
+
+    # results = []
+    # for chunk in pairwise_distances_gen:
+    #     results.append(chunk)
+    # #distance_matrix = np.vstack(list(pairwise_distances_gen))
+    # print("Cálculo de distancia concluído.")
+    # return results
+    return distant_matrix
 
 
 def main():
@@ -43,6 +45,10 @@ def main():
     n_execucoes = 1  # Número de execuções do PCA
     k_neighbors = 5  # Número de vizinhos para trustworthiness/continuity
     results = []  # Lista para armazenar resultados
+
+    cache_dir = os.path.join(os.path.expanduser('~'), '.keras', 'datasets')
+    if os.path.exists(os.path.join(cache_dir, 'cifar-10-python.tar.gz')):
+        os.remove(os.path.join(cache_dir, 'cifar-10-python.tar.gz'))
     
     pic_class = keras.datasets.cifar10
     (x_train, y_train), (x_test, y_test) = pic_class.load_data()
@@ -90,14 +96,14 @@ def main():
         #Calcular as distancias após o PCA
         pca_distances = calculate_pairwise_distances_in_chunks(principal_components_cifar, working_memory=1000)
 
-        # stress_numerator = np.sum((original_distances - pca_distances) ** 2)
-        # stress_denominator = np.sum(original_distances ** 2)
-        # stress = np.sqrt(stress_numerator / stress_denominator)
-
         # Calcular o Stress apenas com as médias
         # Defined stress_numerator calculation directly in code
-        stress_numerator = np.sum([(o - p) ** 2 for o, p in zip(original_distances, pca_distances)])
-        stress_denominator = np.sum([o ** 2 for o in original_distances])
+        # stress_numerator = np.sum([(o - p) ** 2 for o, p in zip(original_distances, pca_distances)])
+        # stress_denominator = np.sum([o ** 2 for o in original_distances])
+        # stress = np.sqrt(stress_numerator / stress_denominator)
+
+        stress_numerator = np.sum((original_distances.flatten() - pca_distances.flatten()) ** 2)
+        stress_denominator = np.sum((pca_distances.flatten()) ** 2)
         stress = np.sqrt(stress_numerator / stress_denominator)
 
         # Calcular Trustworthiness
