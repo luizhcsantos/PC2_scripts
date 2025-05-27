@@ -28,28 +28,27 @@ class LemmaTokenizer(object):
     def __call__(self, document):
         lemmas = []
         
-        # Pre-proccessing of one document at the time
-        # Removing puntuation
+        # Pre-processamento de um documento por vez
+        # Remoção de pontuação
         translator_1 = str.maketrans(string.punctuation, ' ' *
                                      len(string.punctuation))
         document = document.translate(translator_1)
 
-        # Removing numbers
+        # Remoção de numeros
         document = re.sub(r'\d+', ' ', document)
 
-        # Removing special characters
+        # Remoção de caracteres especiais
         document = re.sub(r"[^a-zA-Z0-9]+", ' ', document)
 
-        # The document is a string up to now, after word_tokenize(document) we'll work on every word one at the time
         for token in word_tokenize(document):
             
-            # Removing spaces
+            # Remoção de espaços
             token = token.strip()
             
-            # Lemmatizing
+            # Lematização
             token = self.lemmatizer.lemmatize(token)
 
-            # Removing stopwords
+            # Remoção de stopwords
             if token not in self.stopwords and len(token) > 2:
                 lemmas.append(token)
         return lemmas
@@ -76,25 +75,26 @@ def text_process(mess):
 
 def main():
 
-    n_execucoes = 5  # Número de execuções do PCA
+    n_execucoes = 1  # Número de execuções do PCA
     k_neighbors = 5  # Número de vizinhos para trustworthiness/continuity
     results = []  # Lista para armazenar resultados
 
-    caminho_conjunto = 'SMS/spam.csv'
-    #caminho_conjunto = 'hatespeech/labeled_data.csv'
+    #caminho_conjunto = 'SMS/spam.csv'
+    caminho_conjunto = 'hatespeech/labeled_data.csv'
     # Load the dataset
     with open(caminho_conjunto, 'rb') as f:
         result = chardet.detect(f.read())
     df = pd.read_csv(caminho_conjunto, encoding=result['encoding'])
 
     df.dropna(how="any", inplace=True, axis=1)
-    df.columns = ['label', 'message']
+    # df.columns = ['label', 'message']
+    #
+    # df['label_num'] = df.label.map({'ham':0, 'spam':1})
+    # df['message_len'] = df.message.apply(len)
+    # df['clean_msg'] = df.message.apply(text_process)
 
-    df['label_num'] = df.label.map({'ham':0, 'spam':1})
-    df['message_len'] = df.message.apply(len)
-
-    df['clean_msg'] = df.message.apply(text_process)
-
+    df['clean_msg'] = df.tweet.apply(text_process)
+    print(df.columns)
 
     for run in range(n_execucoes):
 

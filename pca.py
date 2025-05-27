@@ -9,7 +9,6 @@ import numpy as np
 from PIL import Image
 
 #!pip install ucimlrepo
-from ucimlrepo import fetch_ucirepo
 
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import StandardScaler

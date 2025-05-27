@@ -13,8 +13,29 @@ import seaborn as sns
 import time
 from sklearn.manifold import trustworthiness
 from sklearn.metrics import pairwise_distances
+from sklearn.metrics import pairwise_distances_chunked
 from sklearn.neighbors import NearestNeighbors
 
+  # Removed 'stress_numerator' import as it was undefined in 'pca.py'
+
+
+def calculate_pairwise_distances_in_chunks(x, metric="euclidean", working_memory=64):
+    """
+        Função para calcular distâncias de forma eficiente em blocos para evitar problemas de memória.
+        """
+    print(f"Calculando distancias pairwise em blocos para matriz de tamanho {x.shape}...")
+    pairwise_distances_gen = pairwise_distances_chunked(
+        x,
+        metric=metric,
+        working_memory=working_memory,
+        n_jobs=-1)
+
+    results = []
+    for chunk in pairwise_distances_gen:
+        results.append(chunk)
+    #distance_matrix = np.vstack(list(pairwise_distances_gen))
+    print("Cálculo de distancia concluído.")
+    return results
 
 
 def main():
@@ -38,20 +59,6 @@ def main():
     print('Number of Outputs: ', n_classes)
     print('Number of Output Classes: ', classes)
 
-
-    label_list = {
-        0: 'Airplane',
-        1: 'Automobile',
-        2: 'Bird',
-        3: 'Cat',
-        4: 'Deer',
-        5: 'Dog',
-        6: 'Frog',
-        7: 'Horse',
-        8: 'Ship',
-        9: 'Truck'
-    }
-
     x_train = x_train/255.0
     print(np.min(x_train), np.max(x_train), x_train.shape)
 
@@ -67,7 +74,7 @@ def main():
 
         pca = PCA(n_components=2)
         principal_components_cifar = pca.fit_transform(
-            df_cifar.iloc[:, :-1])  # seleciona todas as linhas (:) e todas colunas, menos a última (:-1)
+            df_cifar.iloc[:, :-1].values)  # seleciona todas as linhas (:) e todas colunas, menos a última (:-1)
         principal_components_cifar_df = pd.DataFrame(data=principal_components_cifar,
                                                      columns=['Principal Component 1', 'Principal Component 2'])
         principal_components_cifar_df['Label'] = y_train
@@ -76,23 +83,34 @@ def main():
         # Calcular tempo de execução
         execution_time = time.time() - start_time
 
-        # Calcular Stress
-        original_distances = pairwise_distances(df_cifar.iloc[:, :-1], metric='euclidean')
-        pca_distances = pairwise_distances(principal_components_cifar, metric='euclidean')
+        # Calcular Stress usando chunks
+        original_data = df_cifar.iloc[:, :-1].values  # Convert to array
+        original_distances = calculate_pairwise_distances_in_chunks(original_data, working_memory=1000)
 
-        stress_numerator = np.sum((original_distances - pca_distances) ** 2)
-        stress_denominator = np.sum(original_distances ** 2)
+        #Calcular as distancias após o PCA
+        pca_distances = calculate_pairwise_distances_in_chunks(principal_components_cifar, working_memory=1000)
+
+        # stress_numerator = np.sum((original_distances - pca_distances) ** 2)
+        # stress_denominator = np.sum(original_distances ** 2)
+        # stress = np.sqrt(stress_numerator / stress_denominator)
+
+        # Calcular o Stress apenas com as médias
+        # Defined stress_numerator calculation directly in code
+        stress_numerator = np.sum([(o - p) ** 2 for o, p in zip(original_distances, pca_distances)])
+        stress_denominator = np.sum([o ** 2 for o in original_distances])
         stress = np.sqrt(stress_numerator / stress_denominator)
 
         # Calcular Trustworthiness
         trust = trustworthiness(df_cifar.iloc[:, :-1], principal_components_cifar, n_neighbors=k_neighbors)
 
         # Calcular Continuity
-        nbrs_original = NearestNeighbors(n_neighbors=k_neighbors).fit(df_cifar.iloc[:, :-1])
-        _, indices_original = nbrs_original.kneighbors(df_cifar.iloc[:, :-1])
+        nbrs_original = NearestNeighbors(n_neighbors=k_neighbors + 1).fit(original_data)
+        _, indices_original = nbrs_original.kneighbors(original_data)
+        indices_original = indices_original[:, 1:]  # Exclude self
 
-        nbrs_pca = NearestNeighbors(n_neighbors=k_neighbors).fit(principal_components_cifar)
+        nbrs_pca = NearestNeighbors(n_neighbors=k_neighbors + 1).fit(principal_components_cifar)
         _, indices_pca = nbrs_pca.kneighbors(principal_components_cifar)
+        indices_pca = indices_pca[:, 1:]  # Exclude self
 
         continuity = 0
         n = df_cifar.shape[0]
@@ -111,8 +129,17 @@ def main():
             'continuity': continuity
         })
 
-        print(results)
-    
+        # Converter os resultados para um DataFrame
+        df_results = pd.DataFrame(results)
+
+        # Exibir os resultados no console
+        print("\nResumo dos resultados:")
+        print(df_results)
+
+        # Salvar os resultados em um arquivo CSV
+        df_results.to_csv("resultados/pca/metricas_cifar10.csv", index=False)
+        print("\nOs resultados foram salvos em 'resultados/pca/metricas_cifar10.csv'.")
+
         # principal_components_cifar_df.to_csv('resultados/pca/pca_cifar10.csv', index=False)
         #
         # print('Variancia explicada: {}'.format(pca.explained_variance_ratio_))
