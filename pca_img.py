@@ -17,7 +17,6 @@ from sklearn.metrics import pairwise_distances_chunked
 from sklearn.neighbors import NearestNeighbors
 import os
 
-  # Removed 'stress_numerator' import as it was undefined in 'pca.py'
 
 
 def calculate_pairwise_distances_in_chunks(x, metric="euclidean", working_memory=64):
@@ -42,7 +41,7 @@ def calculate_pairwise_distances_in_chunks(x, metric="euclidean", working_memory
 
 def main():
     
-    n_execucoes = 1  # Número de execuções do PCA
+    n_execucoes = 5  # Número de execuções do PCA
     k_neighbors = 5  # Número de vizinhos para trustworthiness/continuity
     results = []  # Lista para armazenar resultados
 
@@ -54,6 +53,7 @@ def main():
     (x_train, y_train), (x_test, y_test) = pic_class.load_data()
 
     # print the shape of training, testing, and label data
+    print(type(x_train))
     print('Training Data Shape: ', x_train.shape)
     print('Testing Data Shape: ', x_test.shape)
 
@@ -67,6 +67,14 @@ def main():
 
     x_train = x_train/255.0
     print(np.min(x_train), np.max(x_train), x_train.shape)
+
+    sample_ratio = 0.1
+    np.random.seed(42)
+    n_train_samples = int(len(x_train)*sample_ratio)
+    train_indices = np.random.choice(len(x_train), n_train_samples, replace=False)
+
+    x_train = x_train[train_indices]
+    y_train = y_train[train_indices]
 
     x_train_flat = x_train.reshape(-1, 3072) # 32 * 32 * 3
     feat_cols = ['pixel' + str(i) for i in range(x_train_flat.shape[1])]
@@ -143,24 +151,19 @@ def main():
         print(df_results)
 
         # Salvar os resultados em um arquivo CSV
-        df_results.to_csv("resultados/pca/metricas_cifar10.csv", index=False)
-        print("\nOs resultados foram salvos em 'resultados/pca/metricas_cifar10.csv'.")
 
-        # principal_components_cifar_df.to_csv('resultados/pca/pca_cifar10.csv', index=False)
-        #
-        # print('Variancia explicada: {}'.format(pca.explained_variance_ratio_))
-        #
-        # plt.figure(figsize=(10, 7))
-        # sns.scatterplot(
-        #     x="Principal Component 1", y="Principal Component 2",
-        #     hue="Label",
-        #     palette=sns.color_palette("Set2", 10),
-        #     data=principal_components_cifar_df,
-        #     legend="full",
-        #     alpha=1.0
-        # )
-        # plt.savefig('pca_cifar10' + run + '.png', dpi=300)
-        # #plt.show()
+    caminho_resultados = "resultados/pca/metricas_cifar10.csv"
+    df_results = pd.DataFrame(results)
+
+    df_results = pd.DataFrame(results)
+    if not os.path.isfile(caminho_resultados):
+        # Se o arquivo não existe na pasta, cria com cabeçalho
+        df_results.to_csv(caminho_resultados, index=False)
+    else:
+        # Se o arquivo já existe na pasta, adiciona novas linhas sem repetir o cabeçalho
+        df_results.to_csv(caminho_resultados, mode='a', header=False, index=False)
+
+    print(df_results)
 
 
 
