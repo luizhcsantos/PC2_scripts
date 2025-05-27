@@ -75,7 +75,7 @@ def text_process(mess):
 
 def main():
 
-    n_execucoes = 1  # Número de execuções do PCA
+    n_execucoes = 5  # Número de execuções do PCA
     k_neighbors = 5  # Número de vizinhos para trustworthiness/continuity
     results = []  # Lista para armazenar resultados
 
