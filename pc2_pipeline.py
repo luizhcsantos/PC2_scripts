@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from kagglehub import datasets
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE, MDS
 #import umap.umap_ as umap
@@ -61,6 +61,11 @@ class DataProcessor:
         images_reshaped = images_normalized.reshape(images.shape[0], -1)
         return self.scaler.fit_transform(images_reshaped)
 
+    def preprocess_text(self, texts: List[str]) -> np.ndarray:
+        print("  - Pré-processando dados de texto...")
+        vectorizer = TfidfVectorizer(max_features=200, stop_words='english', min_df=3, max_df=0.8)
+        tfidf_matrix = vectorizer.fit_transform(texts).toarray()
+        return vectorizer.fit_transform(tfidf_matrix)
 
 class DimensionalityReducer:
     def __init__(self, n_components: int = 2):
@@ -95,6 +100,7 @@ class ReductionEvaluator:
         self.results = []
 
     def _calculate_stress(self, x_high: np.ndarray, x_low: np.ndarray) -> float:
+
         with np.errstate(divide='ignore', invalid='ignore'):
             d_high = pairwise_distances(x_high)
             d_low = pairwise_distances(x_low)
@@ -193,17 +199,47 @@ def load_cifar10_from_keras(path: str, subsample: int = 2000) -> Tuple[Any, Any,
 
     return x, y, 'image'
 
+def load_sms_spam(path: str, filename: str) -> Tuple[Any, Any, str]:
+    df = pd.read_csv(os.path.join(path, filename), encoding='latin1')
+    # Adapte os nomes das colunas conforme necessário
+    text_col = df.columns[1]
+    label_col = df.columns[0]
+    df = df[[text_col, label_col]].rename(columns={text_col: "text", label_col: "label"})
+    df['label'] = LabelEncoder().fit_transform(df['label'])
+    return df['text'].tolist(), df['label'].values, 'text'
+
+def load_bank_marketing(path: str, subsample: int = 4000) -> Tuple[Any, Any, str]:
+    df = pd.read_csv(os.path.join(path, "bank-full.csv"), sep=';')
+    df['y'] = df['y'].map({'no': 0, 'yes': 1})
+    x = df.drop('y', axis=1)
+    y = df['y'].values
+    if subsample and len(y) > subsample:
+        x, _, y, _ = train_test_split(x, y, train_size=subsample, stratify=y, random_state=42)
+    return x, y, 'numeric'
+
+def load_sms_spam(path: str, subsample: int = 4000) -> Tuple[Any, Any, str]:
+    df = pd.read_csv(os.path.join(path, "spam.csv"), sep=";")
+    df.columns = ['label', 'message']
+    df['label'] = df['label'].map({'ham': 0, 'spam': 1})
+    x = df.drop('label', axis=1)
+    y = df['label'].values
+    if subsample and len(y) > subsample:
+        x, _, y, _ = train_test_split(x, y, train_size=subsample, stratify=y, random_state=42)
+    return x, y, 'text'
 
 if __name__ == "__main__":
     BASE_DATA_PATH = "datasets_locais"
 
     # MApeia nome do dataset -> (função_de_carregamento, kwargs, tipo_de_dado)
     dataset_registry = {
-        "CIFAR-10": (load_cifar10_from_keras, {'subsample': 1000}),
+        #"CIFAR-10": (load_cifar10_from_keras, {'subsample': 1000}),
+        "BANK MARKETING": (load_bank_marketing, {'subsample': 1000}),
+        "SPAM": (load_sms_spam, {'filename': 'spam.csv'}),
     }
     processor = DataProcessor()
     reducer = DimensionalityReducer(n_components=2)
     evaluator = ReductionEvaluator()
+
 
     #methods_to_run = ['pca', 'tsne', 'umap', 'mds']
     methods_to_run = ['pca', 'tsne', 'mds']
@@ -222,7 +258,9 @@ if __name__ == "__main__":
             print(f"ERRO ao carregar o dataset '{name}': {e}. Pulandp")
             continue
 
-        if data_type == 'image': x_processed = processor.preprocess_image(x_raw)
+        if data_type == 'numeric': x_processed = processor.preprocess_numeric(x_raw)
+        elif data_type == 'text': x_processed = processor.preprocess_text(x_raw)
+        elif data_type == 'image': x_processed = processor.preprocess_image(x_raw)
 
         for method in methods_to_run:
             try:

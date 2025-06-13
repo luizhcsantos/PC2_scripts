@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="45e63724-5590-4685-9024-f238a47a3a33" name="Changes" comment="Reorganização de código em classes, e dos datasets em pastas dentro da pasta principal 'datasets_locais'">
+    <list default="true" id="45e63724-5590-4685-9024-f238a47a3a33" name="Changes" comment="Aplicação das 4 métricas no conjunto cifar10; remoção temporária do UMAP.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/pc2_pipeline.py" beforeDir="false" afterPath="$PROJECT_DIR$/pc2_pipeline.py" afterDir="false" />
     </list>
@@ -86,7 +86,7 @@
       <workItem from="1749138591992" duration="837000" />
       <workItem from="1749139548486" duration="3811000" />
       <workItem from="1749840113762" duration="1824000" />
-      <workItem from="1749842209874" duration="7023000" />
+      <workItem from="1749842209874" duration="9293000" />
     </task>
     <task id="LOCAL-00001" summary="Calculo de stress, trustworthiness e continuity para a aplicação do pca no conjunto cifar10.">
       <option name="closed" value="true" />
@@ -112,7 +112,15 @@
       <option name="project" value="LOCAL" />
       <updated>1749842718796</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="Aplicação das 4 métricas no conjunto cifar10; remoção temporária do UMAP.">
+      <option name="closed" value="true" />
+      <created>1749849516315</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1749849516316</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -134,10 +142,11 @@
     <MESSAGE value="Calculo de stress, trustworthiness e continuity para a aplicação do pca no conjunto cifar10. Métricas salvas em csv." />
     <MESSAGE value="Criação do arquivo com info de pacotes necessários para o ambiente virtual." />
     <MESSAGE value="Reorganização de código em classes, e dos datasets em pastas dentro da pasta principal 'datasets_locais'" />
-    <option name="LAST_COMMIT_MESSAGE" value="Reorganização de código em classes, e dos datasets em pastas dentro da pasta principal 'datasets_locais'" />
+    <MESSAGE value="Aplicação das 4 métricas no conjunto cifar10; remoção temporária do UMAP." />
+    <option name="LAST_COMMIT_MESSAGE" value="Aplicação das 4 métricas no conjunto cifar10; remoção temporária do UMAP." />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/PC2_scripts$pc2_pipeline.coverage" NAME="pc2_pipeline Coverage Results" MODIFIED="1749849369504" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/PC2_scripts$pc2_pipeline.coverage" NAME="pc2_pipeline Coverage Results" MODIFIED="1749851283415" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/PC2_scripts$umap_img.coverage" NAME="umap_img Coverage Results" MODIFIED="1749139089977" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/PC2_scripts$pca_img.coverage" NAME="pca_img Coverage Results" MODIFIED="1748384072811" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/PC2_scripts$pca_text.coverage" NAME="pca_text Coverage Results" MODIFIED="1748384272227" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
