@@ -4,13 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="45e63724-5590-4685-9024-f238a47a3a33" name="Changes" comment="Calculo de stress, trustworthiness e continuity para a aplicação do pca no conjunto cifar10. Métricas salvas em csv.">
-      <change afterPath="$PROJECT_DIR$/cifar10_umap.ipynb" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/pc2_pipeline.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/umap_img.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/scripts.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/scripts.iml" afterDir="false" />
+    <list default="true" id="45e63724-5590-4685-9024-f238a47a3a33" name="Changes" comment="Reorganização de código em classes, e dos datasets em pastas dentro da pasta principal 'datasets_locais'">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pc2_pipeline.py" beforeDir="false" afterPath="$PROJECT_DIR$/pc2_pipeline.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -48,25 +44,26 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Python.pca_img.executor&quot;: &quot;Run&quot;,
-    &quot;Python.pca_text.executor&quot;: &quot;Run&quot;,
-    &quot;Python.umap_img.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
-    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Python.pc2_pipeline.executor": "Run",
+    "Python.pca_img.executor": "Run",
+    "Python.pca_text.executor": "Run",
+    "Python.umap_img.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "main",
+    "ignore.virus.scanning.warn.message": "true",
+    "junie.onboarding.icon.badge.shown": "true",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -89,6 +86,7 @@
       <workItem from="1749138591992" duration="837000" />
       <workItem from="1749139548486" duration="3811000" />
       <workItem from="1749840113762" duration="1824000" />
+      <workItem from="1749842209874" duration="7023000" />
     </task>
     <task id="LOCAL-00001" summary="Calculo de stress, trustworthiness e continuity para a aplicação do pca no conjunto cifar10.">
       <option name="closed" value="true" />
@@ -106,7 +104,15 @@
       <option name="project" value="LOCAL" />
       <updated>1748384192417</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="Reorganização de código em classes, e dos datasets em pastas dentro da pasta principal 'datasets_locais'">
+      <option name="closed" value="true" />
+      <created>1749842718796</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1749842718796</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -127,9 +133,11 @@
     <MESSAGE value="Calculo de stress, trustworthiness e continuity para a aplicação do pca no conjunto cifar10." />
     <MESSAGE value="Calculo de stress, trustworthiness e continuity para a aplicação do pca no conjunto cifar10. Métricas salvas em csv." />
     <MESSAGE value="Criação do arquivo com info de pacotes necessários para o ambiente virtual." />
-    <option name="LAST_COMMIT_MESSAGE" value="Criação do arquivo com info de pacotes necessários para o ambiente virtual." />
+    <MESSAGE value="Reorganização de código em classes, e dos datasets em pastas dentro da pasta principal 'datasets_locais'" />
+    <option name="LAST_COMMIT_MESSAGE" value="Reorganização de código em classes, e dos datasets em pastas dentro da pasta principal 'datasets_locais'" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/PC2_scripts$pc2_pipeline.coverage" NAME="pc2_pipeline Coverage Results" MODIFIED="1749849369504" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/PC2_scripts$umap_img.coverage" NAME="umap_img Coverage Results" MODIFIED="1749139089977" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/PC2_scripts$pca_img.coverage" NAME="pca_img Coverage Results" MODIFIED="1748384072811" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/PC2_scripts$pca_text.coverage" NAME="pca_text Coverage Results" MODIFIED="1748384272227" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
