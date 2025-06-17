@@ -11,6 +11,7 @@ from sklearn.manifold import TSNE, MDS
 #import umap.umap_ as umap
 import matplotlib.pyplot as plt
 import seaborn as sns
+import re
 from typing import Union, Optional, List, Tuple, Any
 #import torch
 #from torchvision import datasets
@@ -156,7 +157,7 @@ class ReductionEvaluator:
         return pd.DataFrame(self.results)
 
     @staticmethod
-    def plot_results(x_reduced: np.ndarray, dataset_name: str, method_name: str, labels: Optional[np.ndarray] = None):
+    def plot_results(x_reduced: np.ndarray, dataset_name: str, method_name: str, plots_dir: str, labels: Optional[np.ndarray] = None):
         plt.figure(figsize=(10, 8))
         title = f"Projeção para {dataset_name} usando {method_name.upper()}"
 
@@ -169,6 +170,22 @@ class ReductionEvaluator:
         plt.xlabel(f"{method_name.upper()} Componente 1")
         plt.ylabel(f"{method_name.upper()} Componente 2")
         plt.grid(True)
+
+        # =============================================================
+        # CÓDIGO PARA SALVAR O GRÁFICO
+        # =============================================================
+        # 1. Criar um nome de arquivo seguro e descritivo
+        #    Ex: 'bank_marketing_umap.png'
+        dataset_slug = re.sub(r'[^a-z0-9_]', '', dataset_name.lower().replace(' ', '_'))
+        filename = f"{dataset_slug}_{method_name.lower()}.png"
+        full_path = os.path.join(plots_dir, filename)
+
+        # 2. Salvar a figura ANTES de exibi-la na tela
+        #    dpi=300 -> Salva em alta resolução
+        #    bbox_inches='tight' -> Garante que nada seja cortado da imagem
+        plt.savefig(full_path, dpi=300, bbox_inches='tight')
+        print(f"    - Gráfico salvo em: {full_path}")
+
         plt.show()
 
 
@@ -230,14 +247,17 @@ def load_sms_spam(path: str, subsample: int = 4000) -> Tuple[Any, Any, str]:
 if __name__ == "__main__":
     BASE_DATA_PATH = "datasets_locais"
 
+    PLOTS_DIR = "plots"
+    os.makedirs(PLOTS_DIR, exist_ok=True)
+
     # MApeia nome do dataset -> (função_de_carregamento, kwargs, tipo_de_dado)
     dataset_registry = {
-        #"CIFAR-10": (load_cifar10_from_keras, {'subsample': 1000}),
-        "BANK MARKETING": (load_bank_marketing, {'subsample': 1000}),
+        "CIFAR-10": (load_cifar10_from_keras, {'subsample': 50000}),
+        "BANK MARKETING": (load_bank_marketing, {'subsample': 30000}),
         "SPAM": (load_sms_spam, {'filename': 'spam.csv'}),
     }
     processor = DataProcessor()
-    reducer = DimensionalityReducer(n_components=2)
+    reducer = DimensionalityReducer(n_components=0.70)
     evaluator = ReductionEvaluator()
 
 
@@ -270,7 +290,7 @@ if __name__ == "__main__":
                 exec_time = time.time() - start_time
 
                 evaluator.evaluate(x_processed, x_reduced, name, method, exec_time)
-                evaluator.plot_results(x_reduced, name, method, y)
+                evaluator.plot_results(x_reduced, name, method, PLOTS_DIR, y)
             except Exception as e:
                 print(f"ERRO ao excutar {method.upper()} em '{name}': {e}.")
 
@@ -280,3 +300,13 @@ if __name__ == "__main__":
             print(" - RESULTADOPS FINAIS DAS METRICAS")
             print("=" * 70)
             print(results_df.round(4).to_string())
+
+            # =============================================================
+            # CÓDIGO PARA SALVAR OS RESULTADOS EM ARQUIVO
+            # =============================================================
+
+            # --- Opção 1: Salvar como CSV ---
+            nome_arquivo_csv = "resultados_metricas.csv"
+            results_df.to_csv(nome_arquivo_csv, index=False)
+
+            print(f"\n[SUCESSO] Resultados das métricas foram salvos em: {nome_arquivo_csv}")
