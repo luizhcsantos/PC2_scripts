@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="45e63724-5590-4685-9024-f238a47a3a33" name="Changes" comment="Aplicação das 4 métricas no conjunto cifar10; remoção temporária do UMAP.">
+    <list default="true" id="45e63724-5590-4685-9024-f238a47a3a33" name="Changes" comment="Preprocess do conjnunto hatespeech.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/pc2_pipeline.py" beforeDir="false" afterPath="$PROJECT_DIR$/pc2_pipeline.py" afterDir="false" />
     </list>
@@ -93,7 +93,7 @@
       <workItem from="1750706238591" duration="3011000" />
       <workItem from="1750711098557" duration="3524000" />
       <workItem from="1750779132015" duration="6149000" />
-      <workItem from="1750799400493" duration="570000" />
+      <workItem from="1750799400493" duration="2643000" />
     </task>
     <task id="LOCAL-00001" summary="Calculo de stress, trustworthiness e continuity para a aplicação do pca no conjunto cifar10.">
       <option name="closed" value="true" />
@@ -127,7 +127,15 @@
       <option name="project" value="LOCAL" />
       <updated>1749849516316</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="Preprocess do conjnunto hatespeech.">
+      <option name="closed" value="true" />
+      <created>1750800215638</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1750800215638</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -150,10 +158,11 @@
     <MESSAGE value="Criação do arquivo com info de pacotes necessários para o ambiente virtual." />
     <MESSAGE value="Reorganização de código em classes, e dos datasets em pastas dentro da pasta principal 'datasets_locais'" />
     <MESSAGE value="Aplicação das 4 métricas no conjunto cifar10; remoção temporária do UMAP." />
-    <option name="LAST_COMMIT_MESSAGE" value="Aplicação das 4 métricas no conjunto cifar10; remoção temporária do UMAP." />
+    <MESSAGE value="Preprocess do conjnunto hatespeech." />
+    <option name="LAST_COMMIT_MESSAGE" value="Preprocess do conjnunto hatespeech." />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/PC2_scripts$pc2_pipeline.coverage" NAME="pc2_pipeline Coverage Results" MODIFIED="1750795087532" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/PC2_scripts$pc2_pipeline.coverage" NAME="pc2_pipeline Coverage Results" MODIFIED="1750801929637" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/PC2_scripts$umap_img.coverage" NAME="umap_img Coverage Results" MODIFIED="1749139089977" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/PC2_scripts$pca_img.coverage" NAME="pca_img Coverage Results" MODIFIED="1748384072811" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/PC2_scripts$pca_text.coverage" NAME="pca_text Coverage Results" MODIFIED="1748384272227" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />

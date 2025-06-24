@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import csv
 from kagglehub import datasets
+from numpy.ma.core import indices
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.decomposition import PCA
@@ -82,9 +83,9 @@ class DataProcessor:
         print("    - Limpando textos (removendo stopwords, lematizando, etc.)...")
         cleaned_texts = [self._clean_text_document(doc) for doc in texts]
 
-        print("    - Amostra do texto após a limpeza (primeiras 5 mensagens):")
-        for i, text in enumerate(cleaned_texts[:5]):
-            print(f"      {i + 1}: '{text}'")
+        # print("    - Amostra do texto após a limpeza (primeiras 5 mensagens):")
+        # for i, text in enumerate(cleaned_texts[:5]):
+        #     print(f"      {i + 1}: '{text}'")
 
         print("    - Vetorizando textos com TF-IDF...")
 
@@ -114,8 +115,6 @@ class DimensionalityReducer:
     def reduce(self, data: np.ndarray, method: str) -> np.ndarray:
         if method.lower() not in self.methods:
             raise ValueError(f"Método {method} não suprotado")
-
-        print(data)
 
         reducer = self.methods[method.lower()]
 
@@ -192,31 +191,45 @@ class ReductionEvaluator:
     @staticmethod
     def plot_results(x_reduced: np.ndarray, dataset_name: str, method_name: str, plots_dir: str,
                      labels: Optional[np.ndarray] = None):
+        """
+        Plota o resultado e salva a imagem.
+        Esta versão garante que os rótulos sejam numéricos antes de plotar.
+        """
         plt.figure(figsize=(10, 8))
-        title = f"Projeção para {dataset_name} usando {method_name.upper()}"
+        title = f"Projeção para '{dataset_name}' usando {method_name.upper()}"
 
-        scatter = plt.scatter(x_reduced[:, 0], x_reduced[:, 1], c=labels, cmap='viridis', s=15, alpha=0.7)
-        if labels is not None and len(np.unique(labels)) <= 15:
-            plt.legend(handles=scatter.legend_elements(num=len(np.unique(labels)))[0],
-                       labels=[str(l) for l in np.unique(labels)], title="Classes")
+        # --- A SOLUÇÃO ESTÁ AQUI: Conversão Forçada para Numérico ---
+        if labels is not None:
+            # Converte os rótulos para um tipo numérico. Se algum não puder ser
+            # convertido, será transformado em 'NaN' (Not a Number).
+            numeric_labels = pd.to_numeric(labels, errors='coerce')
+
+            # Filtra quaisquer pontos cujos rótulos não puderam ser convertidos
+            valid_indices = ~np.isnan(numeric_labels)
+            numeric_labels = numeric_labels[valid_indices].astype(int)
+            x_reduced_valid = x_reduced[valid_indices]
+
+            # Agora, 'numeric_labels' é um array de inteiros, que o scatter pode usar
+            scatter = plt.scatter(x_reduced_valid[:, 0], x_reduced_valid[:, 1], c=numeric_labels, cmap='viridis', s=15,
+                                  alpha=0.7)
+
+            if len(np.unique(numeric_labels)) <= 15:
+                plt.legend(handles=scatter.legend_elements(num=len(np.unique(numeric_labels)))[0],
+                           labels=[str(l) for l in np.unique(numeric_labels)], title="Classes")
+        else:
+            # Se não houver rótulos, plota tudo de uma cor
+            scatter = plt.scatter(x_reduced[:, 0], x_reduced[:, 1], s=15, alpha=0.7)
+        # -----------------------------------------------------------------
 
         plt.title(title, fontsize=16)
         plt.xlabel(f"{method_name.upper()} Componente 1")
         plt.ylabel(f"{method_name.upper()} Componente 2")
         plt.grid(True)
 
-        # =============================================================
-        # CÓDIGO PARA SALVAR O GRÁFICO
-        # =============================================================
-        # 1. Criar um nome de arquivo seguro e descritivo
-        #    Ex: 'bank_marketing_umap.png'
+        # O código para salvar a figura continua o mesmo
         dataset_slug = re.sub(r'[^a-z0-9_]', '', dataset_name.lower().replace(' ', '_'))
         filename = f"{dataset_slug}_{method_name.lower()}.png"
         full_path = os.path.join(plots_dir, filename)
-
-        # 2. Salvar a figura ANTES de exibi-la na tela
-        #    dpi=300 -> Salva em alta resolução
-        #    bbox_inches='tight' -> Garante que nada seja cortado da imagem
         plt.savefig(full_path, dpi=300, bbox_inches='tight')
         print(f"    - Gráfico salvo em: {full_path}")
 
@@ -294,13 +307,43 @@ def load_bank_marketing(path: str, subsample: int = 4000) -> Tuple[Any, Any, str
     return x, y, 'numeric'
 
 def load_hate_speech(path: str, subsample: int = 4000) -> Tuple[Any, Any, str]:
-    df = pd.read_csv(os.path.join(path, "labeled_data.csv"), sep=',', on_bad_lines='skip').dropna()
-    df.dropna(inplace=True)
-    df['y'] = df['class']
-    x = df.drop('y', axis=1)
-    y = df['y'].values
+    caminho_completo = os.path.join(path, "labeled_data.csv")
+    print(f"  - Carregando Hate Speech de: {caminho_completo}")
+    try:
+        df = pd.read_csv(os.path.join(path, "labeled_data.csv"), sep=',', on_bad_lines='skip')
+        df.columns = df.columns.str.replace(';', '').str.strip()
+    except FileNotFoundError:
+        print(f"AVISO: Arquivo não encontrado em '{caminho_completo}'. Pulando.")
+        return None, None, None
+    except Exception as e:
+        print(f"  ERRO ao ler o arquivo CSV: {e}")
+        return None, None, None
+
+    if 'tweet' not in df.columns or 'class' not in df.columns:
+        print("  ERRO: O CSV do Hate Speech não contém as colunas 'tweet' e 'class'.")
+        return None, None, None
+
+    df.dropna(subset=['tweet', 'class'], inplace=True)
+    x = df['tweet'].tolist()
+    y = df['class'].values
+
     if subsample and len(y) > subsample:
-        x, _, y, _ = train_test_split(x, y, train_size=subsample, stratify=y, random_state=42)
+        # Conta quantos exemplos existem em cada classe
+        class_counts = pd.Series(y).value_counts()
+
+        # VErifica se alguma classe tem menos de 2 membros
+        if (class_counts < 2).any():
+            print(" AVISO: Pelo menos uma classe tem menos 2 membros. ")
+            indices = np.random.choice(len(y), size=subsample, replace=False)
+            x_sub = [x[i] for i in indices]
+            y_sub = y[indices]
+            return x_sub, y_sub, 'text'
+        else:
+            # Se todas as classes são seguras, usa a estratificação (metodo preferencial)
+            x_sub, _, y_sub, _ = train_test_split(x, y, train_size=subsample, stratify=y, random_state=42)
+            return x_sub, y_sub, 'text'
+        #x, _, y, _ = train_test_split(x, y, train_size=subsample, stratify=y, random_state=42)
+
     return x, y, 'text'
 
 
