@@ -3,18 +3,19 @@ import time
 
 import numpy as np
 import pandas as pd
+import csv
 from kagglehub import datasets
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE, MDS
-#import umap.umap_ as umap
+import umap
 import matplotlib.pyplot as plt
 import seaborn as sns
 import re
 from typing import Union, Optional, List, Tuple, Any
-#import torch
-#from torchvision import datasets
+# import torch
+# from torchvision import datasets
 from sklearn.metrics import pairwise_distances
 import nltk
 from nltk.tokenize import word_tokenize
@@ -41,6 +42,18 @@ class DataProcessor:
 
     def __init__(self):
         self.scaler = StandardScaler()
+        self.lemmatizer = WordNetLemmatizer()
+        self.stopwords = nltk.corpus.stopwords.words("english")
+
+
+    def _clean_text_document(self, doc: str) -> str:
+        doc = doc.lower()
+        doc = re.sub(r"[^a-z\s]", '', doc)
+        tokens = word_tokenize(doc)
+        cleaned_tokens = [
+            self.lemmatizer.lemmatize(word) for word in tokens if word not in self.stopwords and len(word) > 2
+        ]
+        return " ".join(cleaned_tokens)
 
     def preprocess_numeric(self, data: pd.DataFrame) -> np.ndarray:
         """Trata e escala dados numéricos."""
@@ -63,18 +76,36 @@ class DataProcessor:
         return self.scaler.fit_transform(images_reshaped)
 
     def preprocess_text(self, texts: List[str]) -> np.ndarray:
+        """Limpa e vetoriza uma lista de documentos de texto."""
         print("  - Pré-processando dados de texto...")
-        vectorizer = TfidfVectorizer(max_features=200, stop_words='english', min_df=3, max_df=0.8)
-        tfidf_matrix = vectorizer.fit_transform(texts).toarray()
-        return vectorizer.fit_transform(tfidf_matrix)
+
+        print("    - Limpando textos (removendo stopwords, lematizando, etc.)...")
+        cleaned_texts = [self._clean_text_document(doc) for doc in texts]
+
+        print("    - Amostra do texto após a limpeza (primeiras 5 mensagens):")
+        for i, text in enumerate(cleaned_texts[:5]):
+            print(f"      {i + 1}: '{text}'")
+
+        print("    - Vetorizando textos com TF-IDF...")
+
+        vectorizer = TfidfVectorizer(max_features=200, stop_words='english', min_df=1, max_df=0.8)
+
+        tfidf_matrix = vectorizer.fit_transform(cleaned_texts).toarray()
+        return tfidf_matrix
+        # Se o vocabulário ainda estiver vazio, a linha acima falhará.
+        # if tfidf_matrix.shape[1] == 0:
+        #     print("ALERTA: O vocabulário ainda está vazio mesmo com min_df=1. Retornando matriz vazia.")
+        #     return np.array([[] for _ in range(tfidf_matrix.shape[0])])
+        #
+        # return vectorizer.fit_transform(tfidf_matrix)
 
 class DimensionalityReducer:
     def __init__(self, n_components: int = 2):
         self.n_components = n_components
         self.methods = {
             'pca': PCA(n_components=self.n_components),
-            'tsne': TSNE(n_components=self.n_components, random_state=42, n_iter=300),
-            #: umap.UMAP(n_components=self.n_components, random_state=42),
+            'tsne': TSNE(n_components=self.n_components, random_state=42, max_iter=300),
+            'umap': umap.UMAP(n_components=self.n_components, random_state=42),
             'mds': MDS(n_components=self.n_components, random_state=42, n_jobs=-1, normalized_stress='auto')
         }
         # if UMAP_AVAILABLE:
@@ -84,6 +115,8 @@ class DimensionalityReducer:
         if method.lower() not in self.methods:
             raise ValueError(f"Método {method} não suprotado")
 
+        print(data)
+
         reducer = self.methods[method.lower()]
 
         if method.lower() == 'tsne':
@@ -92,7 +125,6 @@ class DimensionalityReducer:
             reducer.set_params(n_neighbors=min(5, min(15, data.shape[0] - 1)))
 
         return reducer.fit_transform(data)
-
 
 class ReductionEvaluator:
     """Calcula, armazena e exibe métricas de qualdiade de redução"""
@@ -110,7 +142,8 @@ class ReductionEvaluator:
             stress = np.sqrt(np.sum((d_high - d_low) ** 2) / sum_of_squares_high)
         return stress
 
-    def _calculate_trustworthiness_continuity(self, x_high: np.ndarray, x_low: np.ndarray, n_neighbors: int) -> Tuple[float, float]:
+    def _calculate_trustworthiness_continuity(self, x_high: np.ndarray, x_low: np.ndarray, n_neighbors: int) -> Tuple[
+        float, float]:
         n_samples = x_high.shape[0]
         k = min(n_neighbors, n_samples - 1)
         if k == 0: return 1.0, 1.0
@@ -157,7 +190,8 @@ class ReductionEvaluator:
         return pd.DataFrame(self.results)
 
     @staticmethod
-    def plot_results(x_reduced: np.ndarray, dataset_name: str, method_name: str, plots_dir: str, labels: Optional[np.ndarray] = None):
+    def plot_results(x_reduced: np.ndarray, dataset_name: str, method_name: str, plots_dir: str,
+                     labels: Optional[np.ndarray] = None):
         plt.figure(figsize=(10, 8))
         title = f"Projeção para {dataset_name} usando {method_name.upper()}"
 
@@ -197,7 +231,6 @@ def load_cifar10(path: str, subsample: int = 1000) -> Tuple[Any, Any, str]:
         x, _, y, _ = train_test_split(x, y, train_size=subsample, stratify=y, random_stte=42)
     return x, y, 'image'
 
-
 def load_cifar10_from_keras(path: str, subsample: int = 2000) -> Tuple[Any, Any, str]:
     """ Carrega o dataset CIFAR-10 usando a API do Keras. """
     # O Keras fará o download e cache dos dados automaticamente
@@ -206,7 +239,7 @@ def load_cifar10_from_keras(path: str, subsample: int = 2000) -> Tuple[Any, Any,
 
     (x, y), (_, _) = cifar10.load_data()
 
-    # O Keras retorna os rótulos em um formato (n_samples, 1), precisamos achatá-lo para (n_samples,)
+    # O Keras retorna os rótulos num formato (n_samples, 1), precisamos achatá-lo para (n_samples,)
     y = y.flatten()
 
     if subsample and len(y) > subsample:
@@ -216,14 +249,40 @@ def load_cifar10_from_keras(path: str, subsample: int = 2000) -> Tuple[Any, Any,
 
     return x, y, 'image'
 
-def load_sms_spam(path: str, filename: str) -> Tuple[Any, Any, str]:
-    df = pd.read_csv(os.path.join(path, filename), encoding='latin1')
-    # Adapte os nomes das colunas conforme necessário
-    text_col = df.columns[1]
-    label_col = df.columns[0]
-    df = df[[text_col, label_col]].rename(columns={text_col: "text", label_col: "label"})
-    df['label'] = LabelEncoder().fit_transform(df['label'])
-    return df['text'].tolist(), df['label'].values, 'text'
+def load_sms_spam(path: str, subsample: int = 4000) -> Tuple[Any, Any, str]:
+    caminho_completo = os.path.join(path, "spam.csv")
+    print(f"  - Carregando SMS Spam de: {caminho_completo}")
+
+    try:
+        df = pd.read_csv(
+            caminho_completo,
+            encoding='latin-1',
+            sep=';',
+            skiprows=202,
+            header=None,
+            names=['label', 'message'],
+            engine='python',
+            quoting=csv.QUOTE_NONE
+        )
+
+        # Código para limpar e preparar os dados
+        df.dropna(subset=['label', 'message'], inplace=True)
+        df['label'] = df['label'].map({'ham': 0, 'spam': 1})
+        df.dropna(subset=['label'], inplace=True)
+        df['label'] = df['label'].astype(int)
+
+        x_df = df.drop('label', axis=1)
+        y = df['label'].values
+
+        if subsample and len(y) > subsample:
+            from sklearn.model_selection import train_test_split
+            x_df, _, y, _ = train_test_split(x_df, y, train_size=subsample, stratify=y, random_state=42)
+
+        return x_df['message'].tolist(), y, 'text'
+
+    except Exception as e:
+        print(f"  ERRO DETALHADO ao ler o CSV: {e}")
+        return None, None, None
 
 def load_bank_marketing(path: str, subsample: int = 4000) -> Tuple[Any, Any, str]:
     df = pd.read_csv(os.path.join(path, "bank-full.csv"), sep=';')
@@ -234,15 +293,16 @@ def load_bank_marketing(path: str, subsample: int = 4000) -> Tuple[Any, Any, str
         x, _, y, _ = train_test_split(x, y, train_size=subsample, stratify=y, random_state=42)
     return x, y, 'numeric'
 
-def load_sms_spam(path: str, subsample: int = 4000) -> Tuple[Any, Any, str]:
-    df = pd.read_csv(os.path.join(path, "spam.csv"), sep=";")
-    df.columns = ['label', 'message']
-    df['label'] = df['label'].map({'ham': 0, 'spam': 1})
-    x = df.drop('label', axis=1)
-    y = df['label'].values
+def load_hate_speech(path: str, subsample: int = 4000) -> Tuple[Any, Any, str]:
+    df = pd.read_csv(os.path.join(path, "labeled_data.csv"), sep=',', on_bad_lines='skip').dropna()
+    df.dropna(inplace=True)
+    df['y'] = df['class']
+    x = df.drop('y', axis=1)
+    y = df['y'].values
     if subsample and len(y) > subsample:
         x, _, y, _ = train_test_split(x, y, train_size=subsample, stratify=y, random_state=42)
     return x, y, 'text'
+
 
 if __name__ == "__main__":
     BASE_DATA_PATH = "datasets_locais"
@@ -252,18 +312,18 @@ if __name__ == "__main__":
 
     # MApeia nome do dataset -> (função_de_carregamento, kwargs, tipo_de_dado)
     dataset_registry = {
-        "CIFAR-10": (load_cifar10_from_keras, {'subsample': 50000}),
-        "BANK MARKETING": (load_bank_marketing, {'subsample': 30000}),
-        "SPAM": (load_sms_spam, {'filename': 'spam.csv'}),
+        # "CIFAR-10": (load_cifar10_from_keras, {'subsample': 1000}),
+        #"BANK MARKETING": (load_bank_marketing, {'subsample': 1000}),
+        #"SMS SPAM": (load_sms_spam, {'subsample': 1000}),
+        "HATE SPEECH": (load_hate_speech, {'subsample': 1000})
     }
     processor = DataProcessor()
-    reducer = DimensionalityReducer(n_components=0.70)
+    reducer = DimensionalityReducer(n_components=2)
     evaluator = ReductionEvaluator()
 
-
-    #methods_to_run = ['pca', 'tsne', 'umap', 'mds']
-    methods_to_run = ['pca', 'tsne', 'mds']
-    #methods_to_run = ['pca', 'tsne', 'mds', 'umap']
+    methods_to_run = ['pca', 'tsne', 'umap', 'mds']
+    #methods_to_run = ['pca', 'tsne', 'mds']
+    # methods_to_run = ['pca', 'tsne', 'mds', 'umap']
 
     for name, (loader_fn, kwargs) in dataset_registry.items():
         dataset_path = os.path.join(BASE_DATA_PATH, name.lower().replace(' ', '_').replace('-', '_'))
@@ -275,12 +335,15 @@ if __name__ == "__main__":
             print(f"AVIDSO: Arquivos para o  dataset {name} não encontrados em '{dataset_path}'. Pulando.")
             continue
         except Exception as e:
-            print(f"ERRO ao carregar o dataset '{name}': {e}. Pulandp")
+            print(f"ERRO ao carregar o dataset '{name}': {e}. Pulando este dataset")
             continue
 
-        if data_type == 'numeric': x_processed = processor.preprocess_numeric(x_raw)
-        elif data_type == 'text': x_processed = processor.preprocess_text(x_raw)
-        elif data_type == 'image': x_processed = processor.preprocess_image(x_raw)
+        if data_type == 'numeric':
+            x_processed = processor.preprocess_numeric(x_raw)
+        elif data_type == 'text':
+            x_processed = processor.preprocess_text(x_raw)
+        elif data_type == 'image':
+            x_processed = processor.preprocess_image(x_raw)
 
         for method in methods_to_run:
             try:
@@ -305,7 +368,6 @@ if __name__ == "__main__":
             # CÓDIGO PARA SALVAR OS RESULTADOS EM ARQUIVO
             # =============================================================
 
-            # --- Opção 1: Salvar como CSV ---
             nome_arquivo_csv = "resultados_metricas.csv"
             results_df.to_csv(nome_arquivo_csv, index=False)
 
