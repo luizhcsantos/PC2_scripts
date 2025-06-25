@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import csv
 from kagglehub import datasets
-from numpy.ma.core import indices
+from numpy.ma.core import indices, append
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.decomposition import PCA
@@ -89,7 +89,7 @@ class DataProcessor:
 
         print("    - Vetorizando textos com TF-IDF...")
 
-        vectorizer = TfidfVectorizer(max_features=200, stop_words='english', min_df=1, max_df=0.8)
+        vectorizer = TfidfVectorizer(max_features=200, min_df=1, max_df=0.8)
 
         tfidf_matrix = vectorizer.fit_transform(cleaned_texts).toarray()
         return tfidf_matrix
@@ -117,6 +117,7 @@ class DimensionalityReducer:
             raise ValueError(f"Método {method} não suprotado")
 
         reducer = self.methods[method.lower()]
+        print(data)
 
         if method.lower() == 'tsne':
             reducer.set_params(perplexity=max(5, min(30, data.shape[0] - 1)))
@@ -193,12 +194,11 @@ class ReductionEvaluator:
                      labels: Optional[np.ndarray] = None):
         """
         Plota o resultado e salva a imagem.
-        Esta versão garante que os rótulos sejam numéricos antes de plotar.
         """
         plt.figure(figsize=(10, 8))
         title = f"Projeção para '{dataset_name}' usando {method_name.upper()}"
 
-        # --- A SOLUÇÃO ESTÁ AQUI: Conversão Forçada para Numérico ---
+        #  Forçada para Numérico ---
         if labels is not None:
             # Converte os rótulos para um tipo numérico. Se algum não puder ser
             # convertido, será transformado em 'NaN' (Not a Number).
@@ -209,7 +209,6 @@ class ReductionEvaluator:
             numeric_labels = numeric_labels[valid_indices].astype(int)
             x_reduced_valid = x_reduced[valid_indices]
 
-            # Agora, 'numeric_labels' é um array de inteiros, que o scatter pode usar
             scatter = plt.scatter(x_reduced_valid[:, 0], x_reduced_valid[:, 1], c=numeric_labels, cmap='viridis', s=15,
                                   alpha=0.7)
 
@@ -226,7 +225,6 @@ class ReductionEvaluator:
         plt.ylabel(f"{method_name.upper()} Componente 2")
         plt.grid(True)
 
-        # O código para salvar a figura continua o mesmo
         dataset_slug = re.sub(r'[^a-z0-9_]', '', dataset_name.lower().replace(' ', '_'))
         filename = f"{dataset_slug}_{method_name.lower()}.png"
         full_path = os.path.join(plots_dir, filename)
@@ -270,7 +268,7 @@ def load_sms_spam(path: str, subsample: int = 4000) -> Tuple[Any, Any, str]:
         df = pd.read_csv(
             caminho_completo,
             encoding='latin-1',
-            sep=';',
+            sep=',',
             skiprows=202,
             header=None,
             names=['label', 'message'],
@@ -278,10 +276,29 @@ def load_sms_spam(path: str, subsample: int = 4000) -> Tuple[Any, Any, str]:
             quoting=csv.QUOTE_NONE
         )
 
-        # Código para limpar e preparar os dados
-        df.dropna(subset=['label', 'message'], inplace=True)
+        # --- INÍCIO DA DEPURAÇÃO ---
+        print(f"\n[DEBUG 1] Shape do DataFrame logo após a leitura: {df.shape}")
+        print(f"[DEBUG 2] Valores únicos na coluna 'label' ANTES do map: {df['label'].unique()}\n")
+
+        # Para evitar problemas com espaços ou maiúsculas/minúsculas, limpamos a coluna 'label'
+        df['label'] = df['label'].str.strip().str.lower()
+
+        # Mapeia os rótulos para valores numéricos
         df['label'] = df['label'].map({'ham': 0, 'spam': 1})
-        df.dropna(subset=['label'], inplace=True)
+
+        print(f"[DEBUG 3] Valores únicos na coluna 'label' DEPOIS do map: {df['label'].unique()}")
+        print(f"[DEBUG 4] Contagem de valores nulos (NaN) na coluna 'label': {df['label'].isnull().sum()}\n")
+
+        # Remove linhas onde o mapeamento falhou ou onde a mensagem está vazia
+        df.dropna(subset=['label', 'message'], inplace=True)
+
+        print(f"[DEBUG 5] Shape do DataFrame APÓS remover os NaNs: {df.shape}\n")
+        # --- FIM DA DEPURAÇÃO ---
+
+        if df.empty:
+            print("ERRO CRÍTICO: O DataFrame ficou vazio após a limpeza. Verifique os valores em 'label'.")
+            return None, None, None
+
         df['label'] = df['label'].astype(int)
 
         x_df = df.drop('label', axis=1)
@@ -294,7 +311,7 @@ def load_sms_spam(path: str, subsample: int = 4000) -> Tuple[Any, Any, str]:
         return x_df['message'].tolist(), y, 'text'
 
     except Exception as e:
-        print(f"  ERRO DETALHADO ao ler o CSV: {e}")
+        print(f"  ERRO DETALHADO ao ler ou processar o CSV: {e}")
         return None, None, None
 
 def load_bank_marketing(path: str, subsample: int = 4000) -> Tuple[Any, Any, str]:
@@ -346,6 +363,50 @@ def load_hate_speech(path: str, subsample: int = 4000) -> Tuple[Any, Any, str]:
 
     return x, y, 'text'
 
+def load_sms_spam1(path: str, subsample: int = 4000) -> Tuple[Any, Any, str]:
+    caminho_completo = os.path.join(path, "spam.csv")
+    print(f"  - Carregando SMS Spam de: {caminho_completo}")
+
+    try:
+        # --- LEITURA PRECISA USANDO PANDAS ---
+        # Esta combinação de parâmetros é a receita para ler o seu arquivo específico.
+        df = pd.read_csv(
+            caminho_completo,
+            encoding='latin-1',  # Para os caracteres especiais
+            sep=';',  # O separador correto entre 'label' e 'message'
+            header=0,  # Usa a primeira linha que encontrar como cabeçalho
+            usecols=[0, 1]  # Carrega APENAS as duas primeiras colunas e ignora o lixo (;;;)
+        )
+        print(df.head())
+
+        # O pandas nomeará as colunas como 'v1' e 'v2' com base no cabeçalho lido.
+        # Vamos renomeá-las para nomes mais claros.
+        if 'v1' in df.columns and 'v2' in df.columns:
+            df.rename(columns={'v1': 'label', 'v2': 'message'}, inplace=True)
+        else:
+            # Plano B se os nomes forem diferentes
+            df.columns = ['label', 'message']
+
+        # O resto do código para limpar e preparar os dados
+        df.dropna(subset=['label', 'message'], inplace=True)
+        df['label'] = df['label'].str.strip().str.lower()
+        df['label'] = df['label'].map({'ham': 0, 'spam': 1})
+        df.dropna(subset=['label'], inplace=True)
+        df['label'] = df['label'].astype(int)
+
+        x_df = df.drop('label', axis=1)
+        y = df['label'].values
+
+        if subsample and len(y) > subsample:
+            from sklearn.model_selection import train_test_split
+            x_df, _, y, _ = train_test_split(x_df, y, train_size=subsample, stratify=y, random_state=42)
+
+        return x_df['message'].tolist(), y, 'text'
+
+    except Exception as e:
+        print(f"  ERRO DETALHADO ao ler ou processar o CSV: {e}")
+        return None, None, None
+
 
 if __name__ == "__main__":
     BASE_DATA_PATH = "datasets_locais"
@@ -357,8 +418,8 @@ if __name__ == "__main__":
     dataset_registry = {
         # "CIFAR-10": (load_cifar10_from_keras, {'subsample': 1000}),
         #"BANK MARKETING": (load_bank_marketing, {'subsample': 1000}),
-        #"SMS SPAM": (load_sms_spam, {'subsample': 1000}),
-        "HATE SPEECH": (load_hate_speech, {'subsample': 1000})
+        "SMS SPAM": (load_sms_spam1, {'subsample': 1000}),
+        #"HATE SPEECH": (load_hate_speech, {'subsample': 1000})
     }
     processor = DataProcessor()
     reducer = DimensionalityReducer(n_components=2)
@@ -412,6 +473,7 @@ if __name__ == "__main__":
             # =============================================================
 
             nome_arquivo_csv = "resultados_metricas.csv"
-            results_df.to_csv(nome_arquivo_csv, index=False)
+            arquivo_existe = os.path.exists(nome_arquivo_csv)
+            results_df.to_csv(nome_arquivo_csv, mode='a', header=not arquivo_existe, index=False)
 
             print(f"\n[SUCESSO] Resultados das métricas foram salvos em: {nome_arquivo_csv}")
