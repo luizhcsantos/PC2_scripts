@@ -46,7 +46,6 @@ class DataProcessor:
         self.lemmatizer = WordNetLemmatizer()
         self.stopwords = nltk.corpus.stopwords.words("english")
 
-
     def _clean_text_document(self, doc: str) -> str:
         doc = doc.lower()
         doc = re.sub(r"[^a-z\s]", '', doc)
@@ -61,11 +60,25 @@ class DataProcessor:
         print(" - Pré-processando dados numéricos...")
         data_numeric = data.select_dtypes(include=np.number)
         data_categorical = data.select_dtypes(exclude=np.number)
+
+        processed_parts = []
+
         if not data_numeric.empty:
+            processed_parts.append(data_numeric)
+
+        if not data_categorical.empty:
+            print("   - Encontradas coluna categóricas. Aplicando One-Hot Enconding...")
+            data_categorical.columns = data_categorical.columns.astype(str)
             data_categorical_encoded = pd.get_dummies(data_categorical, drop_first=True)
-            processed_data = pd.concat([data_numeric, data_categorical_encoded], axis=1)
-        else:
-            processed_data = data_numeric
+            processed_parts.append(data_categorical_encoded)
+            #processed_data = pd.concat([data_numeric, data_categorical_encoded], axis=1)
+        # else:
+        #     processed_data = data_numeric
+        if not processed_parts:
+            print("   AVISO: Nenhum dados numérico ou categórico encontrado no DataFrame.")
+            return np.array([])
+
+        processed_data = pd.concat(processed_parts, axis=1)
 
         data_clean = np.nan_to_num(processed_data.astype(float))
         return self.scaler.fit_transform(data_clean)
@@ -100,6 +113,7 @@ class DataProcessor:
         #
         # return vectorizer.fit_transform(tfidf_matrix)
 
+
 class DimensionalityReducer:
     def __init__(self, n_components: int = 2):
         self.n_components = n_components
@@ -125,6 +139,7 @@ class DimensionalityReducer:
             reducer.set_params(n_neighbors=min(5, min(15, data.shape[0] - 1)))
 
         return reducer.fit_transform(data)
+
 
 class ReductionEvaluator:
     """Calcula, armazena e exibe métricas de qualdiade de redução"""
@@ -242,6 +257,7 @@ def load_cifar10(path: str, subsample: int = 1000) -> Tuple[Any, Any, str]:
         x, _, y, _ = train_test_split(x, y, train_size=subsample, stratify=y, random_stte=42)
     return x, y, 'image'
 
+
 def load_cifar10_from_keras(path: str, subsample: int = 2000) -> Tuple[Any, Any, str]:
     """ Carrega o dataset CIFAR-10 usando a API do Keras. """
     # O Keras fará o download e cache dos dados automaticamente
@@ -260,59 +276,6 @@ def load_cifar10_from_keras(path: str, subsample: int = 2000) -> Tuple[Any, Any,
 
     return x, y, 'image'
 
-def load_sms_spam(path: str, subsample: int = 4000) -> Tuple[Any, Any, str]:
-    caminho_completo = os.path.join(path, "spam.csv")
-    print(f"  - Carregando SMS Spam de: {caminho_completo}")
-
-    try:
-        df = pd.read_csv(
-            caminho_completo,
-            encoding='latin-1',
-            sep=',',
-            skiprows=202,
-            header=None,
-            names=['label', 'message'],
-            engine='python',
-            quoting=csv.QUOTE_NONE
-        )
-
-        # --- INÍCIO DA DEPURAÇÃO ---
-        print(f"\n[DEBUG 1] Shape do DataFrame logo após a leitura: {df.shape}")
-        print(f"[DEBUG 2] Valores únicos na coluna 'label' ANTES do map: {df['label'].unique()}\n")
-
-        # Para evitar problemas com espaços ou maiúsculas/minúsculas, limpamos a coluna 'label'
-        df['label'] = df['label'].str.strip().str.lower()
-
-        # Mapeia os rótulos para valores numéricos
-        df['label'] = df['label'].map({'ham': 0, 'spam': 1})
-
-        print(f"[DEBUG 3] Valores únicos na coluna 'label' DEPOIS do map: {df['label'].unique()}")
-        print(f"[DEBUG 4] Contagem de valores nulos (NaN) na coluna 'label': {df['label'].isnull().sum()}\n")
-
-        # Remove linhas onde o mapeamento falhou ou onde a mensagem está vazia
-        df.dropna(subset=['label', 'message'], inplace=True)
-
-        print(f"[DEBUG 5] Shape do DataFrame APÓS remover os NaNs: {df.shape}\n")
-        # --- FIM DA DEPURAÇÃO ---
-
-        if df.empty:
-            print("ERRO CRÍTICO: O DataFrame ficou vazio após a limpeza. Verifique os valores em 'label'.")
-            return None, None, None
-
-        df['label'] = df['label'].astype(int)
-
-        x_df = df.drop('label', axis=1)
-        y = df['label'].values
-
-        if subsample and len(y) > subsample:
-            from sklearn.model_selection import train_test_split
-            x_df, _, y, _ = train_test_split(x_df, y, train_size=subsample, stratify=y, random_state=42)
-
-        return x_df['message'].tolist(), y, 'text'
-
-    except Exception as e:
-        print(f"  ERRO DETALHADO ao ler ou processar o CSV: {e}")
-        return None, None, None
 
 def load_bank_marketing(path: str, subsample: int = 4000) -> Tuple[Any, Any, str]:
     df = pd.read_csv(os.path.join(path, "bank-full.csv"), sep=';')
@@ -322,6 +285,7 @@ def load_bank_marketing(path: str, subsample: int = 4000) -> Tuple[Any, Any, str
     if subsample and len(y) > subsample:
         x, _, y, _ = train_test_split(x, y, train_size=subsample, stratify=y, random_state=42)
     return x, y, 'numeric'
+
 
 def load_hate_speech(path: str, subsample: int = 4000) -> Tuple[Any, Any, str]:
     caminho_completo = os.path.join(path, "labeled_data.csv")
@@ -359,37 +323,33 @@ def load_hate_speech(path: str, subsample: int = 4000) -> Tuple[Any, Any, str]:
             # Se todas as classes são seguras, usa a estratificação (metodo preferencial)
             x_sub, _, y_sub, _ = train_test_split(x, y, train_size=subsample, stratify=y, random_state=42)
             return x_sub, y_sub, 'text'
-        #x, _, y, _ = train_test_split(x, y, train_size=subsample, stratify=y, random_state=42)
+        # x, _, y, _ = train_test_split(x, y, train_size=subsample, stratify=y, random_state=42)
 
     return x, y, 'text'
 
-def load_sms_spam1(path: str, subsample: int = 4000) -> Tuple[Any, Any, str]:
-    caminho_completo = os.path.join(path, "spam.csv")
-    print(f"  - Carregando SMS Spam de: {caminho_completo}")
+
+def load_spam_collection(path: str, subsample: int = 4000) -> Tuple[Any, Any, str]:
+    """
+    Carrega o dataset SMSSpamCollection original e limpo, usando o separador
+    de TAB e sem cabeçalho, conforme a documentação (readme.txt).
+    """
+    # O nome do arquivo original é SMSSpamCollection.csv
+    caminho_completo = os.path.join(path, "SMSSpamCollection.csv")
+    print(f"  - Carregando SMSSpamCollection de: {caminho_completo}")
 
     try:
-        # --- LEITURA PRECISA USANDO PANDAS ---
-        # Esta combinação de parâmetros é a receita para ler o seu arquivo específico.
+        # --- LEITURA BASEADA NO ARQUIVO TXT FORNECIDO ---
         df = pd.read_csv(
             caminho_completo,
-            encoding='latin-1',  # Para os caracteres especiais
-            sep=';',  # O separador correto entre 'label' e 'message'
-            header=0,  # Usa a primeira linha que encontrar como cabeçalho
-            usecols=[0, 1]  # Carrega APENAS as duas primeiras colunas e ignora o lixo (;;;)
+            sep='\t',  # O separador é TAB, como indica o readme.txt
+            header=None,  # O arquivo não tem linha de cabeçalho
+            names=['label', 'message']  # Nomeamos as colunas manualmente
         )
-        print(df.head())
 
-        # O pandas nomeará as colunas como 'v1' e 'v2' com base no cabeçalho lido.
-        # Vamos renomeá-las para nomes mais claros.
-        if 'v1' in df.columns and 'v2' in df.columns:
-            df.rename(columns={'v1': 'label', 'v2': 'message'}, inplace=True)
-        else:
-            # Plano B se os nomes forem diferentes
-            df.columns = ['label', 'message']
+        print(f"  - Dataset carregado com sucesso. Shape: {df.shape}")
 
-        # O resto do código para limpar e preparar os dados
+        # Código para limpar e preparar os dados
         df.dropna(subset=['label', 'message'], inplace=True)
-        df['label'] = df['label'].str.strip().str.lower()
         df['label'] = df['label'].map({'ham': 0, 'spam': 1})
         df.dropna(subset=['label'], inplace=True)
         df['label'] = df['label'].astype(int)
@@ -399,14 +359,118 @@ def load_sms_spam1(path: str, subsample: int = 4000) -> Tuple[Any, Any, str]:
 
         if subsample and len(y) > subsample:
             from sklearn.model_selection import train_test_split
-            x_df, _, y, _ = train_test_split(x_df, y, train_size=subsample, stratify=y, random_state=42)
+            # Verifica se a estratificação é possível
+            class_counts = pd.Series(y).value_counts()
+            if (class_counts < 2).any():
+                print("  AVISO: Pelo menos uma classe tem menos de 2 membros. Amostragem sem estratificação.")
+                indices = np.random.choice(len(y), size=subsample, replace=False)
+                x_sub = x_df.iloc[indices]
+                y_sub = y[indices]
+            else:
+                x_sub, _, y_sub, _ = train_test_split(x_df, y, train_size=subsample, stratify=y, random_state=42)
+        else:
+            x_sub, y_sub = x_df, y
 
-        return x_df['message'].tolist(), y, 'text'
+        return x_sub['message'].tolist(), y_sub, 'text'
 
+    except FileNotFoundError:
+        print(f"  ERRO: Arquivo '{caminho_completo}' não encontrado. Pulando este dataset.")
+        return None, None, None
     except Exception as e:
         print(f"  ERRO DETALHADO ao ler ou processar o CSV: {e}")
         return None, None, None
 
+
+def load_mnist(path: str, subsample: int = 1000) -> Tuple[Any, Any, str]:
+    """
+    Baixa e carrega o dataset MNIST usando a API do Keras.
+    O Keras gerencia o download e o armazenamento em um diretório de cache próprio.
+    """
+    print("  - Carregando MNIST via TensorFlow/Keras...")
+    try:
+        from tensorflow.keras.datasets import mnist
+    except ImportError:
+        print("  ERRO: TensorFlow não está instalado. Execute 'pip install tensorflow' para usar esta função.")
+        return None, None, None
+
+    (x_train, y_train), (x_test, y_test) = mnist.load_data()
+
+    x = np.concatenate((x_train, x_test), axis=0)
+    y = np.concatenate((y_train, y_test), axis=0)
+
+    print(f"   - Dataset MNIST cpmpleto carregado. Shape: {x.shape}")
+
+    if subsample and len(y) > subsample:
+        print(f"  - Realizando amostragem estratificada para {subsample} exemplos...")
+        class_counts = pd.Series(y).value_counts()
+        if (class_counts < 2).any():
+            print("   AVISO: Pelo menos uma classe tme menos de 2 membros. Amostrgem sem estratificação")
+            indices = np.random.choice(len(y), size=subsample, replace=False)
+            x_sub = x[indices]
+            y_sub = y[indices]
+        else:
+            x_sub, _, y_sub, _ = train_test_split(x, y, train_size=subsample, stratify=y, random_state=42)
+        return x_sub, y_sub, 'image'
+
+    return x, y, 'image'
+
+
+def load_cnae9(path: str, subsample: Optional[int] = None) -> Tuple[Any, Any, str]:
+    """
+    Carrega o dataset CNAE-9, que está em formato de matriz esparsa,
+    e o converte para uma matriz densa (DataFrame) de forma otimizada.
+    """
+    caminho_completo = os.path.join(path, "CNAE-9.data")
+    print(f"  - Carregando CNAE-9 (formato esparso) de: {caminho_completo}")
+
+    try:
+        # --- ETAPA 1: Ler os dados brutos numa estrutura eficiente ---
+        labels = []
+        # data_for_df será uma lista de listas para os dados esparsos
+        # Cada sublista conterá tuplas de (índice_da_linha, índice_da_coluna, valor)
+        data_for_df = []
+        with open(caminho_completo, 'r', encoding='utf-8') as f:
+            for i, line in enumerate(f):
+                parts = line.strip().split(',', maxsplit=1)
+                if len(parts) == 2:
+                    labels.append(int(parts[0]))
+                    features = parts[1].strip().split(' ')
+                    for feature in features:
+                        if ':' in feature:
+                            idx, val = feature.split(':')
+                            # Armazena (linha, coluna, dado)
+                            data_for_df.append((i, int(idx) - 1, float(val)))
+
+        # --- ETAPA 2: Construir a Matriz Densa de Forma Otimizada ---
+        # Extrai os componentes para criar a matriz
+        rows, cols, values = zip(*data_for_df)
+
+
+
+        # O dataset tem 1080 documentos e 856 features (palavras)
+        num_docs = len(labels)
+        num_features = 856
+
+        # Cria uma matriz de zeros e preenche com os valores esparsos
+        # Esta é a maneira mais eficiente, evitando a fragmentação
+        dense_matrix = np.zeros((num_docs, num_features))
+        dense_matrix[rows, cols] = values
+
+        # Converte a matriz NumPy para um DataFrame do pandas
+        X = pd.DataFrame(dense_matrix)
+        y = np.array(labels) - 1  # Ajusta rótulos para começar em 0
+
+        print(f"  - Dataset CNAE-9 carregado e convertido para matriz densa. Shape: {X.shape}")
+
+        if subsample and len(y) > subsample:
+            X, _, y, _ = train_test_split(X, y, train_size=subsample, stratify=y, random_state=42)
+
+        # Retorna um DataFrame, como a função preprocess_numeric espera
+        return X, y, 'numeric'
+
+    except Exception as e:
+        print(f"  ERRO DETALHADO ao ler ou processar o arquivo CNAE-9: {e}")
+        return None, None, None
 
 if __name__ == "__main__":
     BASE_DATA_PATH = "datasets_locais"
@@ -417,16 +481,18 @@ if __name__ == "__main__":
     # MApeia nome do dataset -> (função_de_carregamento, kwargs, tipo_de_dado)
     dataset_registry = {
         # "CIFAR-10": (load_cifar10_from_keras, {'subsample': 1000}),
-        #"BANK MARKETING": (load_bank_marketing, {'subsample': 1000}),
-        "SMS SPAM": (load_sms_spam1, {'subsample': 1000}),
-        #"HATE SPEECH": (load_hate_speech, {'subsample': 1000})
+        # "BANK MARKETING": (load_bank_marketing, {'subsample': 1000}),
+        # "SMS SPAM": (load_spam_collection, {'subsample': 1000}),
+        # "HATE SPEECH": (load_hate_speech, {'subsample': 1000})
+        # "MNIST": (load_mnist, {'subsample': 1000}),
+        "CNAE 9": (load_cnae9, {})
     }
     processor = DataProcessor()
     reducer = DimensionalityReducer(n_components=2)
     evaluator = ReductionEvaluator()
 
     methods_to_run = ['pca', 'tsne', 'umap', 'mds']
-    #methods_to_run = ['pca', 'tsne', 'mds']
+    # methods_to_run = ['pca', 'tsne', 'mds']
     # methods_to_run = ['pca', 'tsne', 'mds', 'umap']
 
     for name, (loader_fn, kwargs) in dataset_registry.items():
